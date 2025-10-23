@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Ular + Musuh Lambat + Makanan</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #111;
+      color: white;
+      font-family: sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+    }
+    canvas {
+      background-color: #222;
+      border: 2px solid white;
+    }
+    #game-over {
+      position: absolute;
+      top: 40%;
+      font-size: 2em;
+      text-align: center;
+      display: none;
+    }
+    #restart {
+      margin-top: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      background: white;
+      color: black;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+    <h1 style="color: white; font-family: sans-serif; margin-bottom: 10px;">
+  🐍 Game Ular vs Musuh 🐍
+</h1>
+  <canvas id="game" width="600" height="600"></canvas>
+
+  <div id="game-over">
+    <div>💀 Game Over 💀</div>
+    <button id="restart">Mulai Ulang</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake, enemy, food, gameLoopInterval;
+    let enemyMoveCounter = 0;
+    const enemyMoveDelay = 2; // musuh bergerak setiap 2 frame
+
+    const gameOverScreen = document.getElementById("game-over");
+    const restartBtn = document.getElementById("restart");
+
+    document.addEventListener("keydown", handleKey);
+    restartBtn.addEventListener("click", startGame);
+
+    function handleKey(e) {
+      switch (e.key) {
+        case "ArrowUp":
+          if (snake.dy === 0) { snake.dx = 0; snake.dy = -1; }
+          break;
+        case "ArrowDown":
+          if (snake.dy === 0) { snake.dx = 0; snake.dy = 1; }
+          break;
+        case "ArrowLeft":
+          if (snake.dx === 0) { snake.dx = -1; snake.dy = 0; }
+          break;
+        case "ArrowRight":
+          if (snake.dx === 0) { snake.dx = 1; snake.dy = 0; }
+          break;
+      }
+    }
+
+    function randomPosition() {
+      return Math.floor(Math.random() * tileCount);
+    }
+
+    function placeFood() {
+      food = {
+        x: randomPosition(),
+        y: randomPosition()
+      };
+    }
+
+    function startGame() {
+      snake = {
+        x: 10,
+        y: 10,
+        dx: 1,
+        dy: 0,
+        tail: [],
+        length: 5
+      };
+
+      enemy = {
+        x: 0,
+        y: 0,
+        tail: [],
+        length: 5
+      };
+
+      enemyMoveCounter = 0;
+      placeFood();
+      gameOverScreen.style.display = "none";
+      if (gameLoopInterval) clearInterval(gameLoopInterval);
+      gameLoopInterval = setInterval(gameLoop, 125);
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+    }
+
+    function update() {
+      // Gerak ular pemain
+      snake.x += snake.dx;
+      snake.y += snake.dy;
+
+      // Tambah kepala ke badan
+      snake.tail.unshift({ x: snake.x, y: snake.y });
+      if (snake.tail.length > snake.length) {
+        snake.tail.pop();
+      }
+
+      // Makan makanan
+      if (snake.x === food.x && snake.y === food.y) {
+        snake.length++;
+        placeFood();
+      }
+
+      // Gerak musuh lambat
+      enemyMoveCounter++;
+      if (enemyMoveCounter >= enemyMoveDelay) {
+        enemyMoveCounter = 0;
+
+        let dx = snake.x - enemy.x;
+        let dy = snake.y - enemy.y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          enemy.x += dx > 0 ? 1 : -1;
+        } else {
+          enemy.y += dy > 0 ? 1 : -1;
+        }
+
+        // Update badan musuh
+        enemy.tail.unshift({ x: enemy.x, y: enemy.y });
+        if (enemy.tail.length > enemy.length) {
+          enemy.tail.pop();
+        }
+      }
+
+      // Game over conditions
+      if (
+        snake.x < 0 || snake.x >= tileCount ||
+        snake.y < 0 || snake.y >= tileCount ||
+        snake.tail.slice(1).some(seg => seg.x === snake.x && seg.y === snake.y) || // tabrak diri
+        enemy.tail.some(seg => seg.x === snake.x && seg.y === snake.y)            // kena musuh
+      ) {
+        endGame();
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Gambar makanan (kuning)
+      ctx.fillStyle = "gold";
+      ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+
+      // Gambar ular pemain (hijau)
+      ctx.fillStyle = "lime";
+      snake.tail.forEach(seg => {
+        ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize - 2, gridSize - 2);
+      });
+
+      // Gambar musuh (Pink)
+      ctx.fillStyle = "hotpink";
+      enemy.tail.forEach(seg => {
+        ctx.fillRect(seg.x * gridSize, seg.y * gridSize, gridSize - 2, gridSize - 2);
+      });
+    }
+
+    function endGame() {
+      clearInterval(gameLoopInterval);
+      gameOverScreen.style.display = "block";
+    }
+
+    // Mulai game pertama kali
+    startGame();
+  </script>
+</body>
+</html>
